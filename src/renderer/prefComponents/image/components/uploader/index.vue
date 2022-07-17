@@ -69,12 +69,11 @@
 </template>
 
 <script>
-import { shell } from 'electron'
+import { ipcRenderer, shell } from 'electron'
 import services, { isValidService } from './services.js'
 import legalNoticesCheckbox from './legalNoticesCheckbox'
 import { isFileExecutableSync } from '@/util/fileSystem'
 import CurSelect from '@/prefComponents/common/select'
-import commandExists from 'command-exists'
 import notice from '@/services/notification'
 
 export default {
@@ -202,8 +201,13 @@ export default {
       this.$store.dispatch('SET_USER_DATA', { type, value })
     },
 
+    onCheckPicGoReplay (event, value) {
+      this.picgoExists = value
+    },
+
     testPicgo () {
-      this.picgoExists = commandExists.sync('picgo')
+      ipcRenderer.addListener('check-pic-go-reply', this.onCheckPicGoReplay.bind(this))
+      ipcRenderer.send('check-pic-go')
     },
 
     validate (value) {

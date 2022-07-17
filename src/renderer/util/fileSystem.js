@@ -8,6 +8,7 @@ import dayjs from 'dayjs'
 import { Octokit } from '@octokit/rest'
 import { isImageFile } from 'common/filesystem/paths'
 import { isWindows } from './index'
+import { ipcRenderer } from 'electron'
 
 export const create = async (pathname, type) => {
   return type === 'directory'
@@ -158,20 +159,19 @@ export const uploadImage = async (pathname, image, preferences) => {
       await fs.writeFile(filepath, data)
     }
     if (uploader === 'picgo') {
-      cp.exec(`picgo u "${filepath}"`, async (err, data) => {
-        if (!isPath) {
-          await fs.unlink(filepath)
-        }
-        if (err) {
-          return rj(err)
-        }
-        const parts = data.split('[PicGo SUCCESS]:')
-        if (parts.length === 2) {
-          re(parts[1].trim())
-        } else {
-          rj('PicGo upload error')
-        }
-      })
+      const result = await ipcRenderer.invoke('exec-pic-go', filepath)
+      if (!isPath) {
+        await fs.unlink(filepath)
+      }
+      if (result.error) {
+        return rj(result.error)
+      }
+      const parts = result.data.split('[PicGo SUCCESS]:')
+      if (parts.length === 2) {
+        re(parts[1].trim())
+      } else {
+        rj('PicGo upload error')
+      }
     } else {
       cp.execFile(cliScript, [filepath], async (err, data) => {
         if (!isPath) {

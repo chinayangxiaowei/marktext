@@ -1,6 +1,6 @@
 import path from 'path'
 import fsPromises from 'fs/promises'
-import { exec } from 'child_process'
+import { exec, execSync } from 'child_process'
 import dayjs from 'dayjs'
 import log from 'electron-log'
 import { app, BrowserWindow, clipboard, dialog, ipcMain, nativeTheme } from 'electron'
@@ -17,6 +17,7 @@ import { watchers } from '../utils/imagePathAutoComplement'
 import { WindowType } from '../windows/base'
 import EditorWindow from '../windows/editor'
 import SettingWindow from '../windows/setting'
+import commandExists from 'command-exists'
 
 class App {
   /**
@@ -575,6 +576,19 @@ class App {
     ipcMain.handle('mt::keybinding-save-user-keybindings', async (event, userKeybindings) => {
       const { keybindings } = this._accessor
       return keybindings.setUserKeybindings(userKeybindings)
+    })
+
+    ipcMain.handle('check-pic-go', (event) => {
+      event.sender.send('check-pic-go-reply', commandExists.sync('picgo'))
+    })
+
+    ipcMain.handle('exec-pic-go', async (event, filename) => {
+      try {
+        const stdout = execSync('picgo u "' + filename + '"')
+        return { error: false, data: stdout.toString() }
+      } catch (error) {
+        return { error: error, data: '' }
+      }
     })
   }
 }
